@@ -9,8 +9,8 @@
     if(typeof define === 'function' && define.amd){ // AMD
         // you may need to change `define([------>'jquery'<------], factory)` 
         // if you use zepto, change it rely name, such as `define(['zepto'], factory)`
-        define(['jquery'], factory)
-        // define(['zepto'], factory)
+        // define(['jquery'], factory)
+        define(['./zepto.min'], factory)
     }else{ // Global
         factory(window.jQuery || window.Zepto)
     }
@@ -35,8 +35,11 @@
             no_fake_img_loader          : false,
             placeholder_data_img        : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAANSURBVBhXYzh8+PB/AAffA0nNPuCLAAAAAElFTkSuQmCC',
             // for IE6\7 that does not support data image
-            placeholder_real_img        : 'http://ditu.baidu.cn/yyfm/lazyload/0.0.1/img/placeholder.png'
+            placeholder_real_img        : 'http://ditu.baidu.cn/yyfm/lazyload/0.0.1/img/placeholder.png',
             // todo : 将某些属性用global来配置，而不是每次在$(selector).lazyload({})内配置
+            use_compressed_img: false,
+            compress_map: [],
+            url_compress_fn: emptyFn
         },
         type // function
 
@@ -217,7 +220,23 @@
                         originalSrcInAttr:
                         options.url_rewriter_fn.call(element,$element,originalSrcInAttr),
                     originalSrcset = $element.attr('data-'+options.data_srcset_attribute),
-                    isImg = $element.is('img')
+                    isImg = $element.is('img');
+
+                originalSrc = (options.use_compressed_img || options.url_compress_fn == emptyFn) ?
+                        originalSrc:
+                        options.url_compress_fn.call(element,$element,originalSrc);
+
+                // 替换成压缩图片的地址
+                if(options.use_compressed_img && options.compress_map.length > 0 && options.url_compress_fn !== emptyFn) {
+                    for(var i = 0;i < options.compress_map.length; i++) {
+                        var item = options.compress_map[i];
+                        if($element.is(item.class) && item.sizes && item.sizes.length === 2) {
+                            originalSrc = options.url_compress_fn.call(element, $element, originalSrc, item.sizes)
+                            break;
+                        }
+                    }
+                }
+
 
                 if($element._lazyload_loadStarted == true || placeholderSrc == originalSrc){
                     $element._lazyload_loadStarted = true
